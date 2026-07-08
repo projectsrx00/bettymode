@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Checkout — Betty Mode</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,700;1,500&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<style>
+  .page-titre{padding:60px 24px 30px; text-align:center;}
+  .page-titre h1{font-size:36px; margin:0;}
+  .page-titre p{color:var(--gris); margin:8px 0 0;}
+
+  .checkout-layout{display:flex; gap:40px; flex-wrap:wrap; padding-bottom:90px;}
+  .checkout-form{flex:2; min-width:320px;}
+  .checkout-resume{flex:1; min-width:280px; background:var(--carte); border:1px solid var(--bordure); border-radius:14px; padding:26px; align-self:flex-start; position:sticky; top:90px;}
+
+  .etape-indicator{display:flex; gap:20px; margin-bottom:30px;}
+  .etape{display:flex; align-items:center; gap:8px; color:var(--gris); font-size:13px;}
+  .etape .numero{width:28px; height:28px; border-radius:50%; border:1px solid var(--bordure); display:flex; align-items:center; justify-content:center; font-size:13px;}
+  .etape.active{color:var(--blanc);}
+  .etape.active .numero{background:var(--or); color:var(--blanc); border-color:var(--or);}
+  .etape.complete{color:var(--or);}
+  .etape.complete .numero{background:var(--or); color:var(--blanc); border-color:var(--or);}
+
+  .form-section{background:var(--carte); border:1px solid var(--bordure); border-radius:14px; padding:24px; margin-bottom:20px;}
+  .form-section h3{font-family:'Playfair Display',serif; font-size:20px; margin:0 0 20px; padding-bottom:12px; border-bottom:1px solid var(--bordure);}
+  .form-row{display:flex; gap:14px; flex-wrap:wrap; margin-bottom:16px;}
+  .form-group{flex:1; min-width:200px;}
+  .form-group label{display:block; font-size:13px; color:var(--gris); margin-bottom:6px; text-transform:uppercase; letter-spacing:.5px;}
+  .form-group input, .form-group select, .form-group textarea{width:100%; padding:12px; background:var(--noir-clair); border:1px solid var(--bordure); border-radius:8px; color:var(--blanc); font-family:'Poppins',sans-serif; font-size:14px; box-sizing:border-box;}
+  .form-group textarea{resize:vertical; min-height:80px;}
+  .form-group input:focus, .form-group select:focus, .form-group textarea:focus{outline:none; border-color:var(--or);}
+
+  .paiement-methode{display:flex; gap:12px; margin-top:8px; flex-wrap:wrap;}
+  .methode-btn{flex:1; min-width:120px; padding:16px; border:2px solid var(--bordure); border-radius:10px; background:transparent; color:var(--blanc); cursor:pointer; text-align:center; transition:all .2s; font-family:'Poppins',sans-serif;}
+  .methode-btn:hover{border-color:var(--or);}
+  .methode-btn.active{border-color:var(--or); background:rgba(203,161,53,.1);}
+  .methode-btn .icone{font-size:24px; display:block; margin-bottom:6px;}
+
+  .resume-article{display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid var(--bordure); font-size:13px;}
+  .resume-article:last-child{border-bottom:none;}
+  .resume-article .nom{flex:1;}
+  .resume-article .details{color:var(--gris); font-size:11px;}
+  .resume-article .total-article{color:var(--or); font-weight:600; margin-left:12px;}
+  .resume-ligne{display:flex; justify-content:space-between; margin-bottom:14px; font-size:14px; color:var(--gris);}
+  .resume-total{display:flex; justify-content:space-between; font-size:20px; font-weight:600; color:var(--blanc); padding-top:16px; border-top:1px solid var(--bordure); margin-bottom:24px;}
+  .resume-total span:last-child{color:var(--or);}
+
+  .btn-valider{display:block; width:100%; text-align:center; padding:16px; background:var(--or); color:var(--blanc); border:none; border-radius:10px; font-size:16px; font-weight:600; cursor:pointer; text-transform:uppercase; letter-spacing:1px; transition:all .2s; font-family:'Poppins',sans-serif;}
+  .btn-valider:hover{background:#e6c200; transform:translateY(-2px);}
+  .btn-valider:disabled{background:var(--gris); cursor:not-allowed; transform:none;}
+
+  .message-confirmation{display:none; text-align:center; padding:60px 24px;}
+  .message-confirmation .icone{font-size:70px; margin-bottom:20px;}
+  .message-confirmation h2{font-family:'Playfair Display',serif; font-size:28px; margin:0 0 10px;}
+  .message-confirmation p{color:var(--gris); margin-bottom:20px;}
+  .message-confirmation .numero-commande{background:var(--carte); padding:10px 20px; border-radius:8px; display:inline-block; font-weight:600; color:var(--or);}
+  .message-confirmation .btn-retour{display:inline-block; margin-top:20px; padding:14px 30px; background:var(--or); color:var(--blanc); text-decoration:none; border-radius:8px; font-weight:600; transition:all .2s;}
+  .message-confirmation .btn-retour:hover{background:#e6c200; transform:translateY(-2px);}
+
+  .error-message{color:#e07b73; font-size:12px; margin-top:4px; display:none;}
+
+  .btn-social{padding:8px 16px; border-radius:25px; font-size:13px; text-decoration:none; display:flex; align-items:center; gap:8px; transition:all .2s; font-family:'Poppins',sans-serif; font-weight:500;}
+  .btn-whatsapp{background:#25D366; color:#fff;}
+  .btn-whatsapp:hover{background:#1fb855; transform:translateY(-2px);}
+  .btn-instagram{background:linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888); color:#fff;}
+  .btn-instagram:hover{transform:translateY(-2px); opacity:0.9;}
+  .reseaux-sociaux{display:flex; gap:12px; align-items:center;}
+
+  @media (max-width: 768px){
+    .page-titre{padding:40px 20px 20px;}
+    .page-titre h1{font-size:26px;}
+    .checkout-layout{flex-direction:column-reverse; gap:24px; padding-bottom:60px;}
+    .checkout-resume{position:static; padding:20px;}
+    .etape-indicator{gap:10px; flex-wrap:wrap; margin-bottom:22px;}
+    .etape{font-size:12px;}
+    .form-section{padding:18px;}
+    .form-section h3{font-size:17px;}
+    .form-row{gap:12px; margin-bottom:12px;}
+    .form-group{min-width:100%;}
+    .paiement-methode{flex-direction:column;}
+    .methode-btn{min-width:100%;}
+  }
+</style>
+</head>
+<body>
+
+
+<header class="site-header">
+  <div class="nav-wrap">
+    <a href="index.html" class="logo">Betty<span>_</span>Mode</a>
+    <nav class="nav-links" id="navLinks">
+      <a href="index.html">Accueil</a>
+      <a href="catalogue.html">Catalogue</a>
+      <div class="reseaux-mobile-menu">
+        <a href="https://wa.me/212721645985" target="_blank" class="btn-social btn-whatsapp">💬 WhatsApp</a>
+        <a href="https://instagram.com/betty_.mode" target="_blank" class="btn-social btn-instagram">📷 Instagram</a>
+      </div>
+    </nav>
+    <div class="nav-actions">
+      <div class="reseaux-sociaux">
+        <a href="https://wa.me/212721645985" target="_blank" class="btn-social btn-whatsapp" title="WhatsApp">
+          💬 WhatsApp
+        </a>
+        <a href="https://instagram.com/betty_.mode" target="_blank" class="btn-social btn-instagram" title="Instagram">
+          📷 Instagram
+        </a>
+      </div>
+      <a href="panier.html" class="icon-btn">🛒<span class="icon-label"> Panier</span> <span class="badge" id="badgePanier">0</span></a>
+      <button class="burger" id="burgerBtn" aria-label="Ouvrir le menu" aria-expanded="false">
+        <span class="burger-icone"><span></span><span></span><span></span></span>
+      </button>
+    </div>
+  </div>
+  <div class="menu-overlay" id="menuOverlay"></div>
+</header>
+
+<div class="page-titre">
+  <h1>Finaliser la commande</h1>
+  <p>Paiement à la livraison · Cash on delivery</p>
+</div>
+
+<div class="conteneur">
+  <!-- Message de confirmation (caché au début) -->
+  <div class="message-confirmation" id="confirmation">
+    <div class="icone">✅</div>
+    <h2>Commande confirmée !</h2>
+    <p>Votre commande a bien été enregistrée. Betty vous contactera pour confirmer les détails de la livraison.</p>
+    <div class="numero-commande" id="numeroCommande"></div>
+    <p style="margin-top:16px; font-size:14px; color:var(--gris);">
+      💵 Vous paierez <strong id="montantTotal"></strong> à la livraison.
+    </p>
+    <a href="index.html" class="btn-retour">Retour à l'accueil</a>
+  </div>
+
+  <!-- Formulaire checkout -->
+  <div class="checkout-layout" id="checkoutLayout">
+    <div class="checkout-form">
+      <!-- Étapes -->
+      <div class="etape-indicator">
+        <div class="etape active" id="etape1"><span class="numero">1</span> Livraison</div>
+        <div class="etape" id="etape2"><span class="numero">2</span> Contact</div>
+        <div class="etape" id="etape3"><span class="numero">3</span> Confirmation</div>
+      </div>
+
+      <!-- Étape 1 : Adresse de livraison -->
+      <div class="form-section" id="sectionLivraison">
+        <h3>📍 Adresse de livraison</h3>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Ville *</label>
+            <select id="ville" required>
+              <option value="">Sélectionnez votre ville</option>
+              <option value="Rabat">Rabat</option>
+              <option value="Casablanca">Casablanca</option>
+              <option value="Marrakech">Marrakech</option>
+              <option value="Fès">Fès</option>
+              <option value="Tanger">Tanger</option>
+              <option value="Agadir">Agadir</option>
+              <option value="Meknès">Meknès</option>
+              <option value="Oujda">Oujda</option>
+              <option value="Kenitra">Kenitra</option>
+              <option value="Tétouan">Tétouan</option>
+              <option value="Autre">Autre</option>
+            </select>
+            <div class="error-message" id="errorVille">Veuillez sélectionner une ville</div>
+          </div>
+          <div class="form-group">
+            <label>Quartier / Arrondissement *</label>
+            <input type="text" id="quartier" placeholder="Ex : Agdal, Maârif..." required>
+            <div class="error-message" id="errorQuartier">Ce champ est requis</div>
+          </div>
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label>Adresse complète *</label>
+          <textarea id="adresse" placeholder="Rue, numéro d'immeuble, étage, indications supplémentaires..." required></textarea>
+          <div class="error-message" id="errorAdresse">Veuillez entrer votre adresse</div>
+        </div>
+      </div>
+
+      <!-- Étape 2 : Contact -->
+      <div class="form-section" id="sectionContact">
+        <h3>📞 Informations de contact</h3>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Nom complet *</label>
+            <input type="text" id="nomClient" placeholder="Votre nom et prénom" required>
+            <div class="error-message" id="errorNom">Ce champ est requis</div>
+          </div>
+          <div class="form-group">
+            <label>Téléphone *</label>
+            <input type="tel" id="telephone" placeholder="+212 6XX XXX XXX" required>
+            <div class="error-message" id="errorTelephone">Numéro de téléphone requis</div>
+          </div>
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label>Email (optionnel)</label>
+          <input type="email" id="email" placeholder="votre@email.com">
+        </div>
+      </div>
+
+      <!-- Étape 3 : Paiement -->
+      <div class="form-section" id="sectionPaiement">
+        <h3>💳 Mode de paiement</h3>
+        <p style="color:var(--gris); font-size:14px; margin-bottom:16px;">Sélectionnez votre méthode de paiement :</p>
+        <div class="paiement-methode">
+          <button class="methode-btn active" onclick="selectionnerPaiement('delivery', this)">
+            <span class="icone">💵</span>
+            Paiement à la livraison
+          </button>
+        </div>
+        <p style="color:var(--gris); font-size:12px; margin-top:8px;">
+          ✅ Paiement en espèces à la réception de votre commande
+        </p>
+      </div>
+
+      <button class="btn-valider" id="btnValider" onclick="validerCommande()">
+        ✅ Confirmer la commande
+      </button>
+    </div>
+
+    <!-- Résumé de la commande -->
+    <div class="checkout-resume">
+      <h3 style="margin-top:0; margin-bottom:20px; font-family:'Playfair Display',serif;">Votre commande</h3>
+      <div id="resumeArticles"></div>
+      <div class="resume-ligne" style="margin-top:12px;"><span>Sous-total</span><span id="sousTotal">0,00 DH</span></div>
+      <div class="resume-ligne"><span>Livraison</span><span style="color:#4CAF50;">Offerite 🎁</span></div>
+      <div class="resume-total"><span>Total à payer</span><span id="total">0,00 DH</span></div>
+      <p style="text-align:center; font-size:12px; color:var(--gris); margin-top:12px;">
+        💵 Vous paierez à la réception de votre commande
+      </p>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="logo" style="font-size:20px; color:var(--blanc); margin-bottom:8px;">Betty<span style="color:var(--rose);">_</span>Mode</div>
+  <p>Fashion designer · Maroc</p>
+  <div style="display:flex; justify-content:center; gap:16px; margin:16px 0; flex-wrap:wrap;">
+    <a href="https://wa.me/212721645985" target="_blank" class="btn-social btn-whatsapp">💬 WhatsApp</a>
+    <a href="https://instagram.com/betty_.mode" target="_blank" class="btn-social btn-instagram">📷 Instagram</a>
+  </div>
+  <p>&copy; 2026 Betty Mode — Tous droits réservés</p>
+</footer>
+
+<script>
+  // Produits de référence
+  const produitsRef = {
+    1: { nom: "Ensemble en line", prix: 450 },
+    2: { nom: "Robe élégante", prix: 380 },
+    3: { nom: "Ensemble bleu", prix: 420 },
+    4: { nom: "Robe d'été fleurie", prix: 350 },
+    5: { nom: "Jean slim taille haute", prix: 280 }
+  };
+
+  let paiementChoisi = 'delivery';
+
+  // Menu burger
+  const burgerBtn = document.getElementById('burgerBtn');
+  const navLinks = document.getElementById('navLinks');
+  const menuOverlay = document.getElementById('menuOverlay');
+  function toggleMenu(forceClose){
+    const ouvert = forceClose ? false : !navLinks.classList.contains('ouvert');
+    navLinks.classList.toggle('ouvert', ouvert);
+    menuOverlay.classList.toggle('visible', ouvert);
+    burgerBtn.classList.toggle('ouvert', ouvert);
+    burgerBtn.setAttribute('aria-expanded', ouvert);
+    document.body.classList.toggle('menu-ouvert', ouvert);
+  }
+  burgerBtn.addEventListener('click', () => toggleMenu());
+  menuOverlay.addEventListener('click', () => toggleMenu(true));
+  navLinks.querySelectorAll('a').forEach(a => a.addEventListener('click', () => toggleMenu(true)));
+
+  function formaterPrix(v){
+    return v.toLocaleString('fr-FR', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' DH';
+  }
+
+  // Charger le résumé
+  function chargerResume() {
+    const panier = JSON.parse(localStorage.getItem('panierBetty') || '[]');
+    const resumeContainer = document.getElementById('resumeArticles');
+    let total = 0;
+    let nbArticles = 0;
+    
+    resumeContainer.innerHTML = '';
+    
+    if (panier.length === 0) {
+      window.location.href = 'panier.html';
+      return;
+    }
+
+    panier.forEach(article => {
+      const ref = produitsRef[article.id] || { nom: article.nom, prix: article.prix };
+      const sousTotal = ref.prix * article.quantite;
+      total += sousTotal;
+      nbArticles += article.quantite;
+
+      const div = document.createElement('div');
+      div.className = 'resume-article';
+      div.innerHTML = `
+        <div class="nom">
+          ${ref.nom}
+          <div class="details">Taille: ${article.taille} · Qté: ${article.quantite} ${article.couleur && article.couleur !== 'N/A' ? '· ' + article.couleur : ''}</div>
+        </div>
+        <div class="total-article">${formaterPrix(sousTotal)}</div>
+      `;
+      resumeContainer.appendChild(div);
+    });
+
+    document.getElementById('sousTotal').textContent = formaterPrix(total);
+    document.getElementById('total').textContent = formaterPrix(total);
+    document.getElementById('badgePanier').textContent = nbArticles;
+  }
+
+  function selectionnerPaiement(methode, btn) {
+    document.querySelectorAll('.methode-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    paiementChoisi = methode;
+  }
+
+  function validerCommande() {
+    let valide = true;
+
+    // Récupération des valeurs
+    const ville = document.getElementById('ville').value;
+    const quartier = document.getElementById('quartier').value.trim();
+    const adresse = document.getElementById('adresse').value.trim();
+    const nomClient = document.getElementById('nomClient').value.trim();
+    const telephone = document.getElementById('telephone').value.trim();
+    const email = document.getElementById('email').value.trim();
+
+    // Reset erreurs
+    document.querySelectorAll('.error-message').forEach(el => el.style.display = 'none');
+
+    // Validation
+    if (!ville) { document.getElementById('errorVille').style.display = 'block'; valide = false; }
+    if (!quartier) { document.getElementById('errorQuartier').style.display = 'block'; valide = false; }
+    if (!adresse) { document.getElementById('errorAdresse').style.display = 'block'; valide = false; }
+    if (!nomClient) { document.getElementById('errorNom').style.display = 'block'; valide = false; }
+    if (!telephone) { document.getElementById('errorTelephone').style.display = 'block'; valide = false; }
+
+    if (!valide) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    // Générer numéro de commande unique
+    const numCommande = 'BM-' + Date.now().toString(36).toUpperCase();
+    const panier = JSON.parse(localStorage.getItem('panierBetty') || '[]');
+    
+    // Calculer le total
+    let total = 0;
+    const articles = panier.map(article => {
+      const ref = produitsRef[article.id] || { nom: article.nom, prix: article.prix };
+      const sousTotal = ref.prix * article.quantite;
+      total += sousTotal;
+      return {
+        id: article.id,
+        nom: ref.nom,
+        taille: article.taille,
+        couleur: article.couleur || 'N/A',
+        quantite: article.quantite,
+        prix: ref.prix,
+        sousTotal: sousTotal
+      };
+    });
+
+    // Créer l'objet commande
+    const commande = {
+      numero: numCommande,
+      nomClient: nomClient,
+      telephone: telephone,
+      email: email || 'N/A',
+      ville: ville,
+      quartier: quartier,
+      adresse: adresse,
+      date: new Date().toISOString(),
+      statut: 'en-attente',
+      paiement: 'À la livraison',
+      total: total,
+      articles: articles
+    };
+
+    // Sauvegarder la commande dans localStorage
+    const commandes = JSON.parse(localStorage.getItem('commandesBetty') || '[]');
+    commandes.push(commande);
+    localStorage.setItem('commandesBetty', JSON.stringify(commandes));
+
+    // Afficher la confirmation
+    document.getElementById('checkoutLayout').style.display = 'none';
+    document.getElementById('confirmation').style.display = 'block';
+    document.getElementById('numeroCommande').textContent = 'Commande #' + numCommande;
+    document.getElementById('montantTotal').textContent = formaterPrix(total);
+
+    // Vider le panier
+    localStorage.removeItem('panierBetty');
+    document.getElementById('badgePanier').textContent = '0';
+
+    // Scroll vers le haut pour voir la confirmation
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // Initialisation
+  chargerResume();
+</script>
+</body>
+</html>

@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Détail produit — Betty Mode</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,700;1,500&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<style>
+  .retour{padding:20px 0; display:block; color:var(--or); text-decoration:none; font-size:14px;}
+  .retour:hover{text-decoration:underline;}
+  
+  .fiche-produit{display:grid; grid-template-columns:1fr 1fr; gap:40px; margin:20px 0 60px;}
+  
+  .galerie{position:relative;}
+  .photo-principale{width:100%; height:450px; background:var(--carte); border-radius:14px; display:flex; align-items:center; justify-content:center; overflow:hidden; border:1px solid var(--bordure);}
+  .photo-principale img{width:100%; height:100%; object-fit:cover;}
+  .photo-principale .placeholder{color:var(--gris); font-size:14px;}
+
+  .infos-produit h1{font-family:'Playfair Display',serif; font-size:32px; margin:0 0 10px;}
+  .infos-produit .prix{color:var(--or); font-size:28px; font-weight:600; margin-bottom:20px;}
+  .infos-produit .description{color:var(--gris); line-height:1.6; margin-bottom:24px;}
+
+  .section-choix{margin-bottom:20px;}
+  .section-choix h4{font-size:14px; text-transform:uppercase; letter-spacing:1px; margin-bottom:10px; color:var(--blanc);}
+  
+  .tailles{display:flex; gap:10px; flex-wrap:wrap; margin-bottom:24px;}
+  .taille-btn{padding:10px 20px; border:1px solid var(--bordure); background:transparent; color:var(--blanc); border-radius:8px; cursor:pointer; transition:all .2s; font-family:'Poppins',sans-serif;}
+  .taille-btn:hover{border-color:var(--or);}
+  .taille-btn.active{background:var(--or); color:var(--blanc); border-color:var(--or);}
+  
+  .couleurs-choix{display:flex; gap:12px; flex-wrap:wrap; margin-bottom:24px;}
+  .couleur-btn{width:40px; height:40px; border-radius:50%; border:2px solid transparent; cursor:pointer; transition:all .2s; position:relative;}
+  .couleur-btn:hover{transform:scale(1.1);}
+  .couleur-btn.active{border-color:var(--or); box-shadow:0 0 0 2px var(--noir), 0 0 0 4px var(--or);}
+  .couleur-btn .tooltip{position:absolute; bottom:-25px; left:50%; transform:translateX(-50%); font-size:10px; color:var(--gris); white-space:nowrap; opacity:0; transition:.2s;}
+  .couleur-btn:hover .tooltip{opacity:1;}
+
+  .quantite-ajout{display:flex; gap:12px; align-items:center; margin-top:24px; flex-wrap:wrap;}
+  .quantite-ajout input[type=number]{width:70px; padding:12px; background:var(--noir-clair); border:1px solid var(--bordure); border-radius:8px; color:var(--blanc); text-align:center; font-size:16px;}
+  .btn-ajouter-panier{padding:14px 30px; background:var(--or); color:var(--blanc); border:none; border-radius:8px; font-weight:600; cursor:pointer; text-transform:uppercase; letter-spacing:1px; transition:all .2s; font-family:'Poppins',sans-serif;}
+  .btn-ajouter-panier:hover{background:#e6c200; transform:translateY(-2px);}
+  .btn-ajouter-panier:disabled{background:var(--gris); cursor:not-allowed; transform:none;}
+
+  .message-erreur{color:#e07b73; font-size:13px; margin-top:8px; display:none;}
+
+  .reseaux-sociaux{display:flex; gap:12px; align-items:center;}
+  .btn-social{padding:8px 16px; border-radius:25px; font-size:13px; text-decoration:none; display:flex; align-items:center; gap:8px; transition:all .2s; font-family:'Poppins',sans-serif; font-weight:500;}
+  .btn-whatsapp{background:#25D366; color:#fff;}
+  .btn-whatsapp:hover{background:#1fb855; transform:translateY(-2px);}
+  .btn-instagram{background:linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888); color:#fff;}
+  .btn-instagram:hover{transform:translateY(-2px); opacity:0.9;}
+
+  @media (max-width:860px){
+    .retour{padding:16px 0;}
+    .fiche-produit{grid-template-columns:1fr; gap:24px; margin:12px 0 44px;}
+    .photo-principale{height:320px;}
+    .infos-produit h1{font-size:26px;}
+    .infos-produit .prix{font-size:24px;}
+    .taille-btn{padding:9px 16px; font-size:13px;}
+    .couleur-btn{width:36px; height:36px;}
+    .quantite-ajout{gap:10px;}
+    .quantite-ajout input[type=number]{width:64px; padding:10px;}
+    .btn-ajouter-panier{flex:1; padding:14px 20px;}
+  }
+  @media (max-width:420px){
+    .photo-principale{height:260px;}
+    .infos-produit h1{font-size:22px;}
+  }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="nav-wrap">
+    <a href="index.html" class="logo">Betty<span>_</span>Mode</a>
+    <nav class="nav-links" id="navLinks">
+      <a href="index.html">Accueil</a>
+      <a href="catalogue.html" class="actif">Catalogue</a>
+      <div class="reseaux-mobile-menu">
+        <a href="https://wa.me/212721645985" target="_blank" class="btn-social btn-whatsapp">💬 WhatsApp</a>
+        <a href="https://instagram.com/betty_.mode" target="_blank" class="btn-social btn-instagram">📷 Instagram</a>
+      </div>
+    </nav>
+    <div class="nav-actions">
+      <!-- Liens réseaux sociaux desktop -->
+      <div class="reseaux-sociaux">
+        <a href="https://wa.me/212721645985" target="_blank" class="btn-social btn-whatsapp" title="WhatsApp">
+          💬 WhatsApp
+        </a>
+        <a href="https://instagram.com/betty_.mode" target="_blank" class="btn-social btn-instagram" title="Instagram">
+          📷 Instagram
+        </a>
+      </div>
+      <a href="panier.html" class="icon-btn">🛒<span class="icon-label"> Panier</span> <span class="badge" id="badgePanier">0</span></a>
+      <button class="burger" id="burgerBtn" aria-label="Ouvrir le menu" aria-expanded="false">
+        <span class="burger-icone"><span></span><span></span><span></span></span>
+      </button>
+    </div>
+  </div>
+  <div class="menu-overlay" id="menuOverlay"></div>
+</header>
+
+<div class="conteneur">
+  <a href="catalogue.html" class="retour">← Retour au catalogue</a>
+
+  <div class="fiche-produit" id="ficheProduit">
+    <div class="galerie">
+      <div class="photo-principale" id="photoPrincipale">
+        <img id="imgProduit" src="" alt="" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+        <span class="placeholder" id="placeholderPhoto" style="display:none;">Photo à venir</span>
+      </div>
+    </div>
+
+    <div class="infos-produit">
+      <h1 id="nomProduit">Chargement...</h1>
+      <div class="prix" id="prixProduit">— DH</div>
+      <div class="description" id="descProduit"></div>
+
+      <!-- Section Tailles -->
+      <div class="section-choix">
+        <h4>Taille</h4>
+        <div class="tailles" id="taillesContainer"></div>
+        <div class="message-erreur" id="erreurTaille">Veuillez sélectionner une taille</div>
+      </div>
+
+      <!-- Section Couleurs -->
+      <div class="section-choix" id="sectionCouleurs">
+        <h4>Couleur</h4>
+        <div class="couleurs-choix" id="couleursContainer"></div>
+        <div class="message-erreur" id="erreurCouleur">Veuillez sélectionner une couleur</div>
+      </div>
+
+      <!-- Quantité et Ajout -->
+      <div class="quantite-ajout">
+        <input type="number" id="quantite" value="1" min="1" max="10">
+        <button class="btn-ajouter-panier" id="btnAjouter" onclick="ajouterAuPanier()">Ajouter au panier</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="logo" style="font-size:20px; color:var(--blanc); margin-bottom:8px;">Betty<span style="color:var(--rose);">_</span>Mode</div>
+  <p>Fashion designer · Maroc</p>
+  <p>&copy; 2026 Betty Mode — Tous droits réservés</p>
+</footer>
+
+<script>
+  // Données des produits (simulées - à remplacer par appel API)
+  const produits = {
+    1: {
+      nom: "Ensemble en line",
+      prix: 450,
+      description: "Ensemble coordonné élégant avec une coupe ajustée qui sublime la silhouette. Parfait pour une soirée ou un événement spécial. Tissu de haute qualité made in Morocco.",
+      image: "images/ensemble-en-line.jpg",
+      tailles: ["S", "M", "L", "XL"],
+      couleurs: []
+    },
+    2: {
+      nom: "Robe élégante",
+      prix: 380,
+      description: "Robe chic et intemporelle disponible en plusieurs coloris. Coupe flatteuse, tissu fluide et confortable. Idéale pour les occasions spéciales comme pour le quotidien.",
+      image: "images/robe-elegante.jpg",
+      tailles: ["S", "M", "L", "XL"],
+      couleurs: [
+        {nom: "Beige", code: "#F5F5DC"},
+        {nom: "Yellow", code: "#EFDE75"},
+        {nom: "Olive", code: "#808000"},
+        {nom: "Pink", code: "#FFC0CB"},
+        {nom: "Black", code: "#000000"},
+        {nom: "Orange", code: "#FF8C00"},
+        {nom: "Brown", code: "#8B4513"},
+        {nom: "Sky Blue", code: "#87CEEB"},
+        {nom: "Bordeaux", code: "#800020"}
+      ]
+    },
+    3: {
+      nom: "Ensemble bleu",
+      prix: 420,
+      description: "Ensemble moderne au bleu profond. Confortable et stylé, cet ensemble vous accompagnera partout avec élégance. Tissu respirant et facile d'entretien.",
+      image: "images/ensemble-bleu.jpg",
+      tailles: ["S", "M", "L", "XL"],
+      couleurs: []
+    },
+    4: {
+      nom: "Robe d'été fleurie",
+      prix: 350,
+      description: "Magnifique robe légère à motifs floraux, parfaite pour l'été. Tissu 100% coton, très agréable à porter pendant les chaudes journées.",
+      image: "images/robe-ete-fleurie.jpg",
+      tailles: ["S", "M", "L"],
+      couleurs: []
+    },
+    5: {
+      nom: "Jean slim taille haute",
+      prix: 280,
+      description: "Jean slim confortable avec taille haute élastiquée. Disponible du 34 au 42. Un basique indispensable de votre garde-robe.",
+      image: "images/jean-slim.jpg",
+      tailles: ["34", "36", "38", "40", "42"],
+      couleurs: []
+    }
+  };
+
+  let produitActuel = null;
+  let tailleSelectionnee = null;
+  let couleurSelectionnee = null;
+
+  // Récupérer l'ID du produit depuis l'URL
+  const params = new URLSearchParams(window.location.search);
+  const idProduit = params.get('id');
+
+  // Charger le produit
+  function chargerProduit(id) {
+    produitActuel = produits[id];
+    if (!produitActuel) {
+      document.getElementById('nomProduit').textContent = "Produit non trouvé";
+      return;
+    }
+
+    document.getElementById('nomProduit').textContent = produitActuel.nom;
+    document.getElementById('prixProduit').textContent = produitActuel.prix.toFixed(2) + " DH";
+    document.getElementById('descProduit').textContent = produitActuel.description;
+    
+    // Image
+    const img = document.getElementById('imgProduit');
+    const placeholder = document.getElementById('placeholderPhoto');
+    img.src = produitActuel.image;
+    img.style.display = 'block';
+    placeholder.style.display = 'none';
+
+    // Tailles
+    const taillesContainer = document.getElementById('taillesContainer');
+    taillesContainer.innerHTML = '';
+    produitActuel.tailles.forEach(taille => {
+      const btn = document.createElement('button');
+      btn.className = 'taille-btn';
+      btn.textContent = taille;
+      btn.onclick = () => selectionnerTaille(taille, btn);
+      taillesContainer.appendChild(btn);
+    });
+
+    // Couleurs
+    const sectionCouleurs = document.getElementById('sectionCouleurs');
+    const couleursContainer = document.getElementById('couleursContainer');
+    if (produitActuel.couleurs.length > 0) {
+      sectionCouleurs.style.display = 'block';
+      couleursContainer.innerHTML = '';
+      produitActuel.couleurs.forEach(couleur => {
+        const btn = document.createElement('div');
+        btn.className = 'couleur-btn';
+        btn.style.backgroundColor = couleur.code;
+        btn.title = couleur.nom;
+        btn.innerHTML = `<span class="tooltip">${couleur.nom}</span>`;
+        btn.onclick = () => selectionnerCouleur(couleur.nom, btn);
+        // Couleur claire = bordure sombre
+        if (['Beige', 'Yellow', 'White', 'Pink', 'Sky Blue'].includes(couleur.nom)) {
+          btn.style.border = '1px solid #444';
+        }
+        couleursContainer.appendChild(btn);
+      });
+    } else {
+      sectionCouleurs.style.display = 'none';
+      couleurSelectionnee = null;
+    }
+
+    // Reset sélections
+    tailleSelectionnee = null;
+    couleurSelectionnee = null;
+    document.getElementById('quantite').value = 1;
+    document.getElementById('erreurTaille').style.display = 'none';
+    document.getElementById('erreurCouleur').style.display = 'none';
+  }
+
+  function selectionnerTaille(taille, btn) {
+    document.querySelectorAll('.taille-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    tailleSelectionnee = taille;
+    document.getElementById('erreurTaille').style.display = 'none';
+  }
+
+  function selectionnerCouleur(couleur, btn) {
+    document.querySelectorAll('.couleur-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    couleurSelectionnee = couleur;
+    document.getElementById('erreurCouleur').style.display = 'none';
+  }
+
+  function ajouterAuPanier() {
+    let valide = true;
+
+    // Vérifier taille
+    if (!tailleSelectionnee) {
+      document.getElementById('erreurTaille').style.display = 'block';
+      valide = false;
+    }
+
+    // Vérifier couleur si nécessaire
+    if (produitActuel.couleurs.length > 0 && !couleurSelectionnee) {
+      document.getElementById('erreurCouleur').style.display = 'block';
+      valide = false;
+    }
+
+    if (!valide) return;
+
+    const quantite = parseInt(document.getElementById('quantite').value);
+    
+    const article = {
+      id: parseInt(idProduit),
+      nom: produitActuel.nom,
+      prix: produitActuel.prix,
+      image: produitActuel.image,
+      taille: tailleSelectionnee,
+      couleur: couleurSelectionnee || 'N/A',
+      quantite: quantite
+    };
+
+    // Sauvegarder dans localStorage
+    let panier = JSON.parse(localStorage.getItem('panierBetty') || '[]');
+    
+    // Vérifier si article existe déjà (même id, taille, couleur)
+    const index = panier.findIndex(item => 
+      item.id === article.id && 
+      item.taille === article.taille && 
+      item.couleur === article.couleur
+    );
+
+    if (index > -1) {
+      panier[index].quantite += quantite;
+    } else {
+      panier.push(article);
+    }
+
+    localStorage.setItem('panierBetty', JSON.stringify(panier));
+    majBadgePanier();
+    
+    // Feedback visuel
+    const btn = document.getElementById('btnAjouter');
+    btn.textContent = '✓ Ajouté !';
+    btn.style.background = '#4CAF50';
+    setTimeout(() => {
+      btn.textContent = 'Ajouter au panier';
+      btn.style.background = 'var(--or)';
+    }, 1500);
+
+    // Redirection optionnelle vers le panier
+    // window.location.href = 'panier.html';
+  }
+
+  function majBadgePanier() {
+    const panier = JSON.parse(localStorage.getItem('panierBetty') || '[]');
+    const total = panier.reduce((sum, item) => sum + item.quantite, 0);
+    document.getElementById('badgePanier').textContent = total;
+  }
+
+  // Initialisation
+  if (idProduit) {
+    chargerProduit(idProduit);
+  } else {
+    document.getElementById('nomProduit').textContent = "Aucun produit spécifié";
+  }
+
+  majBadgePanier();
+
+  // Menu burger
+  const burgerBtn = document.getElementById('burgerBtn');
+  const navLinks = document.getElementById('navLinks');
+  const menuOverlay = document.getElementById('menuOverlay');
+  function toggleMenu(forceClose){
+    const ouvert = forceClose ? false : !navLinks.classList.contains('ouvert');
+    navLinks.classList.toggle('ouvert', ouvert);
+    menuOverlay.classList.toggle('visible', ouvert);
+    burgerBtn.classList.toggle('ouvert', ouvert);
+    burgerBtn.setAttribute('aria-expanded', ouvert);
+    document.body.classList.toggle('menu-ouvert', ouvert);
+  }
+  burgerBtn.addEventListener('click', () => toggleMenu());
+  menuOverlay.addEventListener('click', () => toggleMenu(true));
+  navLinks.querySelectorAll('a').forEach(a => a.addEventListener('click', () => toggleMenu(true)));
+</script>
+</body>
+</html>
