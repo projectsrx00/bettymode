@@ -86,6 +86,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $tailles = isset($_POST['tailles']) ? array_map('intval', $_POST['tailles']) : [];
                 $couleurs = isset($_POST['couleurs']) ? array_map('intval', $_POST['couleurs']) : [];
                 
+                // Traitement des images supplémentaires
+                $imagesExtra = [];
+                if (isset($_POST['images_extra']) && !empty($_POST['images_extra'])) {
+                    $imagesExtraText = trim($_POST['images_extra']);
+                    // Séparer par ligne
+                    $lines = explode("\n", $imagesExtraText);
+                    foreach ($lines as $line) {
+                        $line = trim($line);
+                        if (!empty($line)) {
+                            $imagesExtra[] = $line;
+                        }
+                    }
+                }
+                $imagesExtraJson = !empty($imagesExtra) ? json_encode($imagesExtra) : null;
+                
                 if (empty($nom) || $prix <= 0) {
                     echo json_encode(['success' => false, 'message' => 'Nom et prix sont requis']);
                     exit;
@@ -97,10 +112,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     // Modifier un produit existant
                     $stmt = $pdo->prepare("
                         UPDATE produits 
-                        SET nom = ?, prix = ?, description = ?, stock = ?, image = ?, actif = ?, date_modification = NOW()
+                        SET nom = ?, prix = ?, description = ?, stock = ?, image = ?, 
+                            images_extra = ?, actif = ?, date_modification = NOW()
                         WHERE id = ?
                     ");
-                    $stmt->execute([$nom, $prix, $description, $stock, $image, $actif, $id]);
+                    $stmt->execute([$nom, $prix, $description, $stock, $image, $imagesExtraJson, $actif, $id]);
                     
                     // Supprimer les anciennes relations
                     $pdo->prepare("DELETE FROM produit_tailles WHERE produit_id = ?")->execute([$id]);
@@ -108,10 +124,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 } else {
                     // Ajouter un nouveau produit
                     $stmt = $pdo->prepare("
-                        INSERT INTO produits (nom, prix, description, stock, image, actif, date_creation, date_modification)
-                        VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())
+                        INSERT INTO produits (nom, prix, description, stock, image, images_extra, actif, date_creation, date_modification)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
                     ");
-                    $stmt->execute([$nom, $prix, $description, $stock, $image, $actif]);
+                    $stmt->execute([$nom, $prix, $description, $stock, $image, $imagesExtraJson, $actif]);
                     $id = $pdo->lastInsertId();
                 }
                 
@@ -535,6 +551,8 @@ $nbClients = count($clientsUniques);
     font-size: 14px;
     outline: none;
     transition: all 0.3s ease;
+    width: 100%;
+    box-sizing: border-box;
   }
   .form-group input:focus, 
   .form-group textarea:focus,
@@ -548,6 +566,11 @@ $nbClients = count($clientsUniques);
   }
   .form-group select[multiple] {
     height: 80px;
+  }
+  .form-group .help-text {
+    font-size: 11px;
+    color: var(--gris);
+    margin-top: 4px;
   }
 
   /* Modal */
@@ -847,20 +870,30 @@ $nbClients = count($clientsUniques);
                 <th>Nom</th>
                 <th>Prix</th>
                 <th>Stock</th>
+                <th>Photos</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody id="tableProduits">
               <?php if (empty($produits)): ?>
-                <tr><td colspan="6" style="text-align:center; color:var(--gris); padding:30px;">Aucun produit</td></tr>
+                <tr><td colspan="7" style="text-align:center; color:var(--gris); padding:30px;">Aucun produit</td></tr>
               <?php else: ?>
-                <?php foreach ($produits as $p): ?>
+                <?php foreach ($produits as $p): 
+                  $nbPhotos = 1; // Image principale
+                  if (!empty($p['images_extra'])) {
+                      $extra = json_decode($p['images_extra'], true);
+                      if (is_array($extra)) {
+                          $nbPhotos += count($extra);
+                      }
+                  }
+                ?>
                   <tr>
                     <td>#<?= $p['id'] ?></td>
                     <td><?= $p['image'] ? '🖼' : '—' ?></td>
                     <td><?= htmlspecialchars($p['nom']) ?></td>
                     <td><strong><?= number_format($p['prix'], 2, ',', ' ') ?> DH</strong></td>
                     <td><?= $p['stock'] ?></td>
+                    <td><?= $nbPhotos ?> 📸</td>
                     <td>
                       <button class="btn-action voir" onclick="editerProduit(<?= $p['id'] ?>)">✏️ Modifier</button>
                       <button class="btn-action supprimer" onclick="supprimerProduit(<?= $p['id'] ?>)">🗑</button>
@@ -890,12 +923,14 @@ $nbClients = count($clientsUniques);
               <input type="number" name="prix" id="prixProduit" placeholder="0.00" step="0.01" required>
             </div>
           </div>
+          
           <div class="form-row">
             <div class="form-group">
               <label>Description</label>
               <textarea name="description" id="descProduit" placeholder="Description du produit..."></textarea>
             </div>
           </div>
+          
           <div class="form-row">
             <div class="form-group">
               <label>Tailles</label>
@@ -904,7 +939,7 @@ $nbClients = count($clientsUniques);
                   <option value="<?= $t['id'] ?>"><?= htmlspecialchars($t['valeur']) ?></option>
                 <?php endforeach; ?>
               </select>
-              <small style="color:var(--gris);">Ctrl+clic pour sélectionner plusieurs</small>
+              <div class="help-text">Ctrl+clic pour sélectionner plusieurs</div>
             </div>
             <div class="form-group">
               <label>Couleurs</label>
@@ -913,17 +948,19 @@ $nbClients = count($clientsUniques);
                   <option value="<?= $c['id'] ?>"><?= htmlspecialchars($c['nom']) ?></option>
                 <?php endforeach; ?>
               </select>
-              <small style="color:var(--gris);">Ctrl+clic pour sélectionner plusieurs</small>
+              <div class="help-text">Ctrl+clic pour sélectionner plusieurs</div>
             </div>
           </div>
+          
           <div class="form-row">
             <div class="form-group">
               <label>Stock</label>
               <input type="number" name="stock" id="stockProduit" value="10" min="0">
             </div>
             <div class="form-group">
-              <label>Image (chemin)</label>
+              <label>Image principale</label>
               <input type="text" name="image" id="imageProduit" placeholder="ex: images/produit.jpg">
+              <div class="help-text">Chemin de l'image principale</div>
             </div>
             <div class="form-group">
               <label>Actif</label>
@@ -933,6 +970,15 @@ $nbClients = count($clientsUniques);
               </select>
             </div>
           </div>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label>Photos supplémentaires (une par ligne)</label>
+              <textarea name="images_extra" id="imagesExtraProduit" rows="4" placeholder="images/photo2.jpg&#10;images/photo3.jpg&#10;images/photo4.jpg"></textarea>
+              <div class="help-text">Chaque chemin d'image sur une nouvelle ligne. Ces photos apparaîtront en carrousel.</div>
+            </div>
+          </div>
+          
           <div style="display:flex; gap:12px; margin-top:12px;">
             <button type="submit" class="btn-or">💾 Sauvegarder</button>
             <button type="button" class="btn-outline" onclick="annulerProduit()">Annuler</button>
@@ -1181,6 +1227,7 @@ $nbClients = count($clientsUniques);
     for (let opt of couleurSelect.options) opt.selected = false;
     document.getElementById('stockProduit').value = '10';
     document.getElementById('imageProduit').value = '';
+    document.getElementById('imagesExtraProduit').value = '';
     document.getElementById('actifProduit').value = '1';
     window.scrollTo({ top: document.getElementById('formProduit').offsetTop - 100, behavior: 'smooth' });
   }
