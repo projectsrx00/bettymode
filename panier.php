@@ -1,3 +1,17 @@
+<?php
+include('db.php');
+
+// Récupérer tous les produits pour les références
+$stmt = $pdo->prepare("SELECT id, nom, prix, image FROM produits WHERE actif = 1");
+$stmt->execute();
+$produitsRef = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Créer un tableau associatif pour un accès facile
+$produitsMap = [];
+foreach ($produitsRef as $p) {
+    $produitsMap[$p['id']] = $p;
+}
+?>
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -39,6 +53,7 @@
   .resume-total span:last-child{color:var(--or);}
   .btn-commander{display:block; width:100%; text-align:center; padding:16px; background:var(--or); color:var(--blanc); border:none; border-radius:10px; font-size:16px; font-weight:600; cursor:pointer; text-transform:uppercase; letter-spacing:1px; transition:all .2s; font-family:'Poppins',sans-serif; text-decoration:none;}
   .btn-commander:hover{background:#e6c200; transform:translateY(-2px);}
+  .btn-commander:disabled{background:var(--gris); cursor:not-allowed; transform:none; opacity:0.6;}
 
   .reseaux-sociaux{display:flex; gap:12px; align-items:center;}
   .btn-social{padding:8px 16px; border-radius:25px; font-size:13px; text-decoration:none; display:flex; align-items:center; gap:8px; transition:all .2s; font-family:'Poppins',sans-serif; font-weight:500;}
@@ -46,6 +61,16 @@
   .btn-whatsapp:hover{background:#1fb855; transform:translateY(-2px);}
   .btn-instagram{background:linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888); color:#fff;}
   .btn-instagram:hover{transform:translateY(-2px); opacity:0.9;}
+
+  /* Toast notification */
+  .toast{
+    position:fixed; bottom:24px; right:24px; background:var(--carte); border:1px solid var(--rose);
+    color:var(--blanc); padding:14px 22px; border-radius:10px; font-size:14px;
+    opacity:0; transform:translateY(10px); transition:.25s; pointer-events:none; z-index:1000;
+  }
+  .toast.show{opacity:1; transform:translateY(0);}
+  .toast.success{border-color:#4CAF50;}
+  .toast.error{border-color:#e07b73;}
 
   @media (max-width: 860px){
     .page-titre{padding:40px 20px 20px;}
@@ -70,10 +95,10 @@
 
 <header class="site-header">
   <div class="nav-wrap">
-    <a href="index.html" class="logo">Betty<span>_</span>Mode</a>
+    <a href="index.php" class="logo">Betty<span>_</span>Mode</a>
     <nav class="nav-links" id="navLinks">
-      <a href="index.html">Accueil</a>
-      <a href="catalogue.html">Catalogue</a>
+      <a href="index.php">Accueil</a>
+      <a href="catalogue.php">Catalogue</a>
       <div class="reseaux-mobile-menu">
         <a href="https://wa.me/212721645985" target="_blank" class="btn-social btn-whatsapp">💬 WhatsApp</a>
         <a href="https://instagram.com/betty_.mode" target="_blank" class="btn-social btn-instagram">📷 Instagram</a>
@@ -88,7 +113,7 @@
           📷 Instagram
         </a>
       </div>
-      <a href="panier.html" class="icon-btn">🛒<span class="icon-label"> Panier</span> <span class="badge" id="badgePanier">0</span></a>
+      <a href="panier.php" class="icon-btn">🛒<span class="icon-label"> Panier</span> <span class="badge" id="badgePanier">0</span></a>
       <button class="burger" id="burgerBtn" aria-label="Ouvrir le menu" aria-expanded="false">
         <span class="burger-icone"><span></span><span></span><span></span></span>
       </button>
@@ -104,7 +129,7 @@
   <div class="panier-vide" id="panierVide">
     <div class="icone-vide">🛒</div>
     <p>Votre panier est vide pour le moment.</p>
-    <a href="catalogue.html">→ Découvrir notre catalogue</a>
+    <a href="catalogue.php">→ Découvrir notre catalogue</a>
   </div>
 
   <!-- Panier avec articles -->
@@ -118,7 +143,7 @@
       <div class="resume-ligne"><span>Sous-total</span><span id="sousTotal">0,00 DH</span></div>
       <div class="resume-ligne"><span>Livraison</span><span id="fraisLivraison">Offerite 🎁</span></div>
       <div class="resume-total"><span>Total</span><span id="total">0,00 DH</span></div>
-      <a href="checkout.html" class="btn-commander">Passer la commande</a>
+      <button class="btn-commander" id="btnCommander" onclick="passerCommande()">Passer la commande</button>
       <p style="text-align:center; font-size:12px; color:var(--gris); margin-top:12px;">
         💵 Paiement à la livraison
       </p>
@@ -140,20 +165,22 @@
   <p>&copy; 2026 Betty Mode — Tous droits réservés</p>
 </footer>
 
-<script>
-  // Produits de référence
-  const produitsRef = {
-    1: { nom: "Ensemble en line", prix: 450, image: "images/ensemble-en-line.jpg" },
-    2: { nom: "Robe élégante", prix: 380, image: "images/robe-elegante.jpg" },
-    3: { nom: "Ensemble bleu", prix: 420, image: "images/ensemble-bleu.jpg" },
-    4: { nom: "Robe d'été fleurie", prix: 350, image: "images/robe-ete-fleurie.jpg" },
-    5: { nom: "Jean slim taille haute", prix: 280, image: "images/jean-slim.jpg" }
-  };
+<!-- Toast notification -->
+<div class="toast" id="toast"></div>
 
-  // Menu burger
+<script>
+  // ============================================================
+  // DONNÉES PRODUITS (passées depuis PHP)
+  // ============================================================
+  const produitsRef = <?= json_encode($produitsMap) ?>;
+
+  // ============================================================
+  // MENU BURGER
+  // ============================================================
   const burgerBtn = document.getElementById('burgerBtn');
   const navLinks = document.getElementById('navLinks');
   const menuOverlay = document.getElementById('menuOverlay');
+  
   function toggleMenu(forceClose){
     const ouvert = forceClose ? false : !navLinks.classList.contains('ouvert');
     navLinks.classList.toggle('ouvert', ouvert);
@@ -166,11 +193,26 @@
   menuOverlay.addEventListener('click', () => toggleMenu(true));
   navLinks.querySelectorAll('a').forEach(a => a.addEventListener('click', () => toggleMenu(true)));
 
+  // ============================================================
+  // FONCTIONS UTILITAIRES
+  // ============================================================
   function formaterPrix(v){
     return v.toLocaleString('fr-FR', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' DH';
   }
 
-  // Charger le panier depuis localStorage
+  function afficherToast(message, type = 'success') {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.className = 'toast ' + type + ' show';
+    clearTimeout(toast._timeout);
+    toast._timeout = setTimeout(() => {
+      toast.classList.remove('show');
+    }, 3000);
+  }
+
+  // ============================================================
+  // GESTION DU PANIER
+  // ============================================================
   function chargerPanier() {
     const panier = JSON.parse(localStorage.getItem('panierBetty') || '[]');
     const panierListe = document.getElementById('panierListe');
@@ -187,16 +229,26 @@
     document.getElementById('panierLayout').style.display = 'flex';
 
     panier.forEach((article, index) => {
-      const ref = produitsRef[article.id] || { nom: article.nom, prix: article.prix, image: article.image };
+      const ref = produitsRef[article.id] || { 
+        nom: article.nom || 'Produit', 
+        prix: article.prix || 0, 
+        image: article.image || '' 
+      };
       
       const div = document.createElement('div');
       div.className = 'article';
       div.dataset.index = index;
       div.dataset.prix = ref.prix;
       div.dataset.id = article.id;
+      
+      // Gérer l'image avec fallback
+      const imageHtml = ref.image 
+        ? `<img src="${ref.image}" alt="${ref.nom}" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">`
+        : '';
+      
       div.innerHTML = `
         <div class="img">
-          <img src="${ref.image}" alt="${ref.nom}" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+          ${imageHtml}
           <span class="placeholder" style="display:none; position:absolute; color:var(--gris); font-size:10px;">Photo</span>
         </div>
         <div class="infos">
@@ -242,6 +294,7 @@
     panier.splice(index, 1);
     localStorage.setItem('panierBetty', JSON.stringify(panier));
     chargerPanier();
+    afficherToast('Article retiré du panier', 'success');
   }
 
   function recalculer() {
@@ -263,9 +316,33 @@
     document.getElementById('sousTotal').textContent = formaterPrix(total);
     document.getElementById('total').textContent = formaterPrix(total);
     document.getElementById('badgePanier').textContent = nbArticles;
+    
+    // Désactiver le bouton si panier vide
+    document.getElementById('btnCommander').disabled = nbArticles === 0;
   }
 
-  // Initialisation
+  // ============================================================
+  // PASSER COMMANDE
+  // ============================================================
+  function passerCommande() {
+    const panier = JSON.parse(localStorage.getItem('panierBetty') || '[]');
+    if (panier.length === 0) {
+      afficherToast('Votre panier est vide', 'error');
+      return;
+    }
+    
+    // Récupérer le total
+    const totalEl = document.getElementById('total');
+    const total = parseFloat(totalEl.textContent.replace(/[^\d,]/g, '').replace(',', '.'));
+    
+    // Rediriger vers la page de checkout avec les données
+    // On pourrait aussi ouvrir un modal ou rediriger vers checkout.php
+    window.location.href = 'checkout.php';
+  }
+
+  // ============================================================
+  // INITIALISATION
+  // ============================================================
   chargerPanier();
 </script>
 </body>

@@ -1,3 +1,36 @@
+<?php
+include('db.php');
+
+// Récupérer les produits pour l'affichage (limité à 3 pour l'accueil)
+$stmt = $pdo->prepare("SELECT * FROM produits WHERE actif = 1 ORDER BY id LIMIT 3");
+$stmt->execute();
+$produitsAccueil = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Récupérer les couleurs pour chaque produit (pour l'affichage des cercles)
+function getCouleursProduit($pdo, $produitId) {
+    $stmt = $pdo->prepare("
+        SELECT c.nom, c.code_hex 
+        FROM produit_couleurs pc 
+        JOIN couleurs c ON pc.couleur_id = c.id 
+        WHERE pc.produit_id = ?
+    ");
+    $stmt->execute([$produitId]);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+// Récupérer les tailles pour chaque produit
+function getTaillesProduit($pdo, $produitId) {
+    $stmt = $pdo->prepare("
+        SELECT t.valeur 
+        FROM produit_tailles pt 
+        JOIN tailles t ON pt.taille_id = t.id 
+        WHERE pt.produit_id = ?
+        ORDER BY t.id
+    ");
+    $stmt->execute([$produitId]);
+    return $stmt->fetchAll(PDO::FETCH_COLUMN);
+}
+?>
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -77,17 +110,16 @@
 
 <header class="site-header">
   <div class="nav-wrap">
-    <a href="index.html" class="logo">Betty<span>_</span>Mode</a>
+    <a href="index.php" class="logo">Betty<span>_</span>Mode</a>
     <nav class="nav-links" id="navLinks">
-      <a href="index.html" class="actif">Accueil</a>
-      <a href="catalogue.html">Catalogue</a>
+      <a href="index.php" class="actif">Accueil</a>
+      <a href="catalogue.php">Catalogue</a>
       <div class="reseaux-mobile-menu">
         <a href="https://wa.me/212721645985" target="_blank" class="btn-social btn-whatsapp">💬 WhatsApp</a>
         <a href="https://instagram.com/betty_.mode" target="_blank" class="btn-social btn-instagram">📷 Instagram</a>
       </div>
     </nav>
     <div class="nav-actions">
-      <!-- Liens réseaux sociaux desktop -->
       <div class="reseaux-sociaux">
         <a href="https://wa.me/212721645985" target="_blank" class="btn-social btn-whatsapp" title="WhatsApp">
           💬 WhatsApp
@@ -96,7 +128,7 @@
           📷 Instagram
         </a>
       </div>
-      <a href="panier.html" class="icon-btn">🛒<span class="icon-label"> Panier</span> <span class="badge" id="badgePanier">0</span></a>
+      <a href="panier.php" class="icon-btn">🛒<span class="icon-label"> Panier</span> <span class="badge" id="badgePanier">0</span></a>
       <button class="burger" id="burgerBtn" aria-label="Ouvrir le menu" aria-expanded="false">
         <span class="burger-icone"><span></span><span></span><span></span></span>
       </button>
@@ -109,9 +141,8 @@
   <h1>L'élégance au quotidien,<br><em>signée Betty Mode</em></h1>
   <p>Des pièces uniques pensées pour sublimer chaque silhouette. Découvrez notre collection exclusive de vêtements pour femme.</p>
   <div class="actions">
-    <a href="catalogue.html" class="btn btn-or">Découvrir le catalogue</a>
+    <a href="catalogue.php" class="btn btn-or">Découvrir le catalogue</a>
   </div>
-  <!-- Liens réseaux sociaux mobile -->
   <div class="reseaux-mobile">
     <a href="https://wa.me/212721645985" target="_blank" class="btn-social btn-whatsapp">
       💬 WhatsApp
@@ -125,64 +156,48 @@
 <div class="conteneur">
   <div class="section-titre">
     <h2>Notre Collection</h2>
-    <a href="catalogue.html">Voir tout le catalogue →</a>
+    <a href="catalogue.php">Voir tout le catalogue →</a>
   </div>
 
   <div class="grille-produits">
-
-    <!-- Produit 1 : Ensemble en line -->
-    <div class="carte-produit" onclick="location.href='info-produit.html?id=1'">
-      <div class="img">
-        <img src="images/ensemble-en-line.jpg" alt="Ensemble en line" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
-        <span class="placeholder" style="display:none;">Photo : Ensemble en line</span>
-      </div>
-      <div class="carte-corps">
-        <h3>Ensemble en line</h3>
-        <div class="options">Tailles : <span>S</span><span>M</span><span>L</span><span>XL</span></div>
-        <div class="prix">450,00 DH</div>
-        <a href="info-produit.html?id=1" class="btn btn-outline btn-sm">Voir le produit</a>
-      </div>
-    </div>
-
-    <!-- Produit 2 : Robe élégante -->
-    <div class="carte-produit" onclick="location.href='info-produit.html?id=2'">
-      <div class="img">
-        <img src="images/robe-elegante.jpg" alt="Robe élégante" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
-        <span class="placeholder" style="display:none;">Photo : Robe élégante</span>
-      </div>
-      <div class="carte-corps">
-        <h3>Robe élégante</h3>
-        <div class="options">Tailles : <span>S</span><span>M</span><span>L</span><span>XL</span></div>
-        <div class="couleurs">
-          <span class="cercle-couleur" style="background:#F5F5DC;" title="Beige"></span>
-          <span class="cercle-couleur" style="background:#EFDE75;" title="Yellow"></span>
-          <span class="cercle-couleur" style="background:#808000;" title="Olive"></span>
-          <span class="cercle-couleur" style="background:#FFC0CB;" title="Pink"></span>
-          <span class="cercle-couleur" style="background:#000000;" title="Black"></span>
-          <span class="cercle-couleur" style="background:#FF8C00;" title="Orange"></span>
-          <span class="cercle-couleur" style="background:#8B4513;" title="Brown"></span>
-          <span class="cercle-couleur" style="background:#87CEEB;" title="Sky Blue"></span>
-          <span class="cercle-couleur" style="background:#800020;" title="Bordeaux"></span>
+    <?php if (empty($produitsAccueil)): ?>
+      <p>Aucun produit disponible pour le moment.</p>
+    <?php else: ?>
+      <?php foreach ($produitsAccueil as $produit): 
+        $couleurs = getCouleursProduit($pdo, $produit['id']);
+        $tailles = getTaillesProduit($pdo, $produit['id']);
+      ?>
+        <div class="carte-produit" onclick="location.href='info-produit.php?id=<?= $produit['id'] ?>'">
+          <div class="img">
+            <?php if ($produit['image'] && file_exists($produit['image'])): ?>
+              <img src="<?= htmlspecialchars($produit['image']) ?>" alt="<?= htmlspecialchars($produit['nom']) ?>">
+            <?php else: ?>
+              <span class="placeholder">Photo : <?= htmlspecialchars($produit['nom']) ?></span>
+            <?php endif; ?>
+          </div>
+          <div class="carte-corps">
+            <h3><?= htmlspecialchars($produit['nom']) ?></h3>
+            <?php if (!empty($tailles)): ?>
+              <div class="options">
+                Tailles :
+                <?php foreach ($tailles as $taille): ?>
+                  <span><?= htmlspecialchars($taille) ?></span>
+                <?php endforeach; ?>
+              </div>
+            <?php endif; ?>
+            <?php if (!empty($couleurs)): ?>
+              <div class="couleurs">
+                <?php foreach ($couleurs as $couleur): ?>
+                  <span class="cercle-couleur" style="background:<?= htmlspecialchars($couleur['code_hex']) ?>;" title="<?= htmlspecialchars($couleur['nom']) ?>"></span>
+                <?php endforeach; ?>
+              </div>
+            <?php endif; ?>
+            <div class="prix"><?= number_format($produit['prix'], 2, ',', ' ') ?> DH</div>
+            <a href="info-produit.php?id=<?= $produit['id'] ?>" class="btn btn-outline btn-sm">Voir le produit</a>
+          </div>
         </div>
-        <div class="prix">380,00 DH</div>
-        <a href="info-produit.html?id=2" class="btn btn-outline btn-sm">Voir le produit</a>
-      </div>
-    </div>
-
-    <!-- Produit 3 : Ensemble bleu -->
-    <div class="carte-produit" onclick="location.href='info-produit.html?id=3'">
-      <div class="img">
-        <img src="images/ensemble-bleu.jpg" alt="Ensemble bleu" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
-        <span class="placeholder" style="display:none;">Photo : Ensemble bleu</span>
-      </div>
-      <div class="carte-corps">
-        <h3>Ensemble bleu</h3>
-        <div class="options">Tailles : <span>S</span><span>M</span><span>L</span><span>XL</span></div>
-        <div class="prix">420,00 DH</div>
-        <a href="info-produit.html?id=3" class="btn btn-outline btn-sm">Voir le produit</a>
-      </div>
-    </div>
-
+      <?php endforeach; ?>
+    <?php endif; ?>
   </div>
 
   <div class="atouts">

@@ -1,3 +1,53 @@
+<?php
+// Configuration de la base de données
+include('db.php');
+
+// Récupérer l'ID du produit depuis l'URL
+$idProduit = isset($_GET['id']) ? intval($_GET['id']) : 0;
+
+// Récupérer les informations du produit
+$produit = null;
+if ($idProduit > 0) {
+    $stmt = $pdo->prepare("SELECT * FROM produits WHERE id = ? AND actif = 1");
+    $stmt->execute([$idProduit]);
+    $produit = $stmt->fetch(PDO::FETCH_ASSOC);
+}
+
+// Récupérer les couleurs du produit
+$couleurs = [];
+if ($produit) {
+    $stmt = $pdo->prepare("
+        SELECT c.nom, c.code_hex 
+        FROM produit_couleurs pc 
+        JOIN couleurs c ON pc.couleur_id = c.id 
+        WHERE pc.produit_id = ?
+    ");
+    $stmt->execute([$idProduit]);
+    $couleurs = $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+// Récupérer les tailles du produit
+$tailles = [];
+if ($produit) {
+    $stmt = $pdo->prepare("
+        SELECT t.valeur 
+        FROM produit_tailles pt 
+        JOIN tailles t ON pt.taille_id = t.id 
+        WHERE pt.produit_id = ?
+        ORDER BY 
+            CASE 
+                WHEN t.valeur = 'S' THEN 1
+                WHEN t.valeur = 'M' THEN 2
+                WHEN t.valeur = 'L' THEN 3
+                WHEN t.valeur = 'XL' THEN 4
+                WHEN t.valeur REGEXP '^[0-9]+$' THEN CAST(t.valeur AS UNSIGNED) + 10
+                ELSE 99
+            END
+    ");
+    $stmt->execute([$idProduit]);
+    $tailles = $stmt->fetchAll(PDO::FETCH_COLUMN);
+}
+?>
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -73,26 +123,21 @@
 
 <header class="site-header">
   <div class="nav-wrap">
-    <a href="index.html" class="logo">Betty<span>_</span>Mode</a>
+    <a href="index.php" class="logo">Betty<span>_</span>Mode</a>
     <nav class="nav-links" id="navLinks">
-      <a href="index.html">Accueil</a>
-      <a href="catalogue.html" class="actif">Catalogue</a>
+      <a href="index.php">Accueil</a>
+      <a href="catalogue.php" class="actif">Catalogue</a>
       <div class="reseaux-mobile-menu">
         <a href="https://wa.me/212721645985" target="_blank" class="btn-social btn-whatsapp">💬 WhatsApp</a>
         <a href="https://instagram.com/betty_.mode" target="_blank" class="btn-social btn-instagram">📷 Instagram</a>
       </div>
     </nav>
     <div class="nav-actions">
-      <!-- Liens réseaux sociaux desktop -->
       <div class="reseaux-sociaux">
-        <a href="https://wa.me/212721645985" target="_blank" class="btn-social btn-whatsapp" title="WhatsApp">
-          💬 WhatsApp
-        </a>
-        <a href="https://instagram.com/betty_.mode" target="_blank" class="btn-social btn-instagram" title="Instagram">
-          📷 Instagram
-        </a>
+        <a href="https://wa.me/212721645985" target="_blank" class="btn-social btn-whatsapp" title="WhatsApp">💬 WhatsApp</a>
+        <a href="https://instagram.com/betty_.mode" target="_blank" class="btn-social btn-instagram" title="Instagram">📷 Instagram</a>
       </div>
-      <a href="panier.html" class="icon-btn">🛒<span class="icon-label"> Panier</span> <span class="badge" id="badgePanier">0</span></a>
+      <a href="panier.php" class="icon-btn">🛒<span class="icon-label"> Panier</span> <span class="badge" id="badgePanier">0</span></a>
       <button class="burger" id="burgerBtn" aria-label="Ouvrir le menu" aria-expanded="false">
         <span class="burger-icone"><span></span><span></span><span></span></span>
       </button>
@@ -102,40 +147,73 @@
 </header>
 
 <div class="conteneur">
-  <a href="catalogue.html" class="retour">← Retour au catalogue</a>
+  <a href="catalogue.php" class="retour">← Retour au catalogue</a>
 
   <div class="fiche-produit" id="ficheProduit">
     <div class="galerie">
       <div class="photo-principale" id="photoPrincipale">
-        <img id="imgProduit" src="" alt="" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
-        <span class="placeholder" id="placeholderPhoto" style="display:none;">Photo à venir</span>
+        <?php if ($produit && !empty($produit['image'])): ?>
+          <img id="imgProduit" src="<?= htmlspecialchars($produit['image']) ?>" alt="<?= htmlspecialchars($produit['nom']) ?>" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+          <span class="placeholder" id="placeholderPhoto" style="display:none;">Photo à venir</span>
+        <?php else: ?>
+          <span class="placeholder" id="placeholderPhoto">Photo à venir</span>
+        <?php endif; ?>
       </div>
     </div>
 
     <div class="infos-produit">
-      <h1 id="nomProduit">Chargement...</h1>
-      <div class="prix" id="prixProduit">— DH</div>
-      <div class="description" id="descProduit"></div>
-
-      <!-- Section Tailles -->
-      <div class="section-choix">
-        <h4>Taille</h4>
-        <div class="tailles" id="taillesContainer"></div>
-        <div class="message-erreur" id="erreurTaille">Veuillez sélectionner une taille</div>
+      <h1 id="nomProduit">
+        <?= $produit ? htmlspecialchars($produit['nom']) : 'Produit non trouvé' ?>
+      </h1>
+      <div class="prix" id="prixProduit">
+        <?= $produit ? number_format($produit['prix'], 2, ',', ' ') . ' DH' : '—' ?>
+      </div>
+      <div class="description" id="descProduit">
+        <?= $produit ? nl2br(htmlspecialchars($produit['description'] ?? '')) : 'Désolé, ce produit n\'existe pas dans notre catalogue.' ?>
       </div>
 
-      <!-- Section Couleurs -->
-      <div class="section-choix" id="sectionCouleurs">
-        <h4>Couleur</h4>
-        <div class="couleurs-choix" id="couleursContainer"></div>
-        <div class="message-erreur" id="erreurCouleur">Veuillez sélectionner une couleur</div>
-      </div>
+      <?php if ($produit): ?>
+        <div class="section-choix">
+          <h4>Taille</h4>
+          <div class="tailles" id="taillesContainer">
+            <?php if (!empty($tailles)): ?>
+              <?php foreach ($tailles as $taille): ?>
+                <button class="taille-btn" onclick="selectionnerTaille(this, '<?= htmlspecialchars($taille) ?>')">
+                  <?= htmlspecialchars($taille) ?>
+                </button>
+              <?php endforeach; ?>
+            <?php else: ?>
+              <span style="color:var(--gris); font-size:13px;">Aucune taille disponible</span>
+            <?php endif; ?>
+          </div>
+          <div class="message-erreur" id="erreurTaille">Veuillez sélectionner une taille</div>
+        </div>
 
-      <!-- Quantité et Ajout -->
-      <div class="quantite-ajout">
-        <input type="number" id="quantite" value="1" min="1" max="10">
-        <button class="btn-ajouter-panier" id="btnAjouter" onclick="ajouterAuPanier()">Ajouter au panier</button>
-      </div>
+        <div class="section-choix" id="sectionCouleurs" <?= empty($couleurs) ? 'style="display:none;"' : '' ?>>
+          <h4>Couleur</h4>
+          <div class="couleurs-choix" id="couleursContainer">
+            <?php foreach ($couleurs as $couleur): ?>
+              <div class="couleur-btn" style="background:<?= htmlspecialchars($couleur['code_hex']) ?>;" 
+                   onclick="selectionnerCouleur(this, '<?= htmlspecialchars($couleur['nom']) ?>')"
+                   title="<?= htmlspecialchars($couleur['nom']) ?>">
+                <span class="tooltip"><?= htmlspecialchars($couleur['nom']) ?></span>
+              </div>
+            <?php endforeach; ?>
+          </div>
+          <div class="message-erreur" id="erreurCouleur">Veuillez sélectionner une couleur</div>
+        </div>
+
+        <div class="quantite-ajout">
+          <input type="number" id="quantite" value="1" min="1" max="<?= min($produit['stock'], 10) ?>">
+          <button class="btn-ajouter-panier" id="btnAjouter" onclick="ajouterAuPanier()">Ajouter au panier</button>
+        </div>
+
+        <?php if ($produit['stock'] <= 0): ?>
+          <div style="color:#e07b73; font-size:13px; margin-top:10px;">⚠️ Ce produit est actuellement en rupture de stock</div>
+        <?php endif; ?>
+      <?php else: ?>
+        <div style="color:#e07b73; margin-top:20px;">Ce produit n'est pas disponible dans notre catalogue.</div>
+      <?php endif; ?>
     </div>
   </div>
 </div>
@@ -147,177 +225,80 @@
 </footer>
 
 <script>
-  // Données des produits (simulées - à remplacer par appel API)
-  const produits = {
-    1: {
-      nom: "Ensemble en line",
-      prix: 450,
-      description: "Ensemble coordonné élégant avec une coupe ajustée qui sublime la silhouette. Parfait pour une soirée ou un événement spécial. Tissu de haute qualité made in Morocco.",
-      image: "images/ensemble-en-line.jpg",
-      tailles: ["S", "M", "L", "XL"],
-      couleurs: []
-    },
-    2: {
-      nom: "Robe élégante",
-      prix: 380,
-      description: "Robe chic et intemporelle disponible en plusieurs coloris. Coupe flatteuse, tissu fluide et confortable. Idéale pour les occasions spéciales comme pour le quotidien.",
-      image: "images/robe-elegante.jpg",
-      tailles: ["S", "M", "L", "XL"],
-      couleurs: [
-        {nom: "Beige", code: "#F5F5DC"},
-        {nom: "Yellow", code: "#EFDE75"},
-        {nom: "Olive", code: "#808000"},
-        {nom: "Pink", code: "#FFC0CB"},
-        {nom: "Black", code: "#000000"},
-        {nom: "Orange", code: "#FF8C00"},
-        {nom: "Brown", code: "#8B4513"},
-        {nom: "Sky Blue", code: "#87CEEB"},
-        {nom: "Bordeaux", code: "#800020"}
-      ]
-    },
-    3: {
-      nom: "Ensemble bleu",
-      prix: 420,
-      description: "Ensemble moderne au bleu profond. Confortable et stylé, cet ensemble vous accompagnera partout avec élégance. Tissu respirant et facile d'entretien.",
-      image: "images/ensemble-bleu.jpg",
-      tailles: ["S", "M", "L", "XL"],
-      couleurs: []
-    },
-    4: {
-      nom: "Robe d'été fleurie",
-      prix: 350,
-      description: "Magnifique robe légère à motifs floraux, parfaite pour l'été. Tissu 100% coton, très agréable à porter pendant les chaudes journées.",
-      image: "images/robe-ete-fleurie.jpg",
-      tailles: ["S", "M", "L"],
-      couleurs: []
-    },
-    5: {
-      nom: "Jean slim taille haute",
-      prix: 280,
-      description: "Jean slim confortable avec taille haute élastiquée. Disponible du 34 au 42. Un basique indispensable de votre garde-robe.",
-      image: "images/jean-slim.jpg",
-      tailles: ["34", "36", "38", "40", "42"],
-      couleurs: []
-    }
-  };
+  // ============================================================
+  // DONNÉES PRODUIT (passées depuis PHP vers JavaScript)
+  // ============================================================
+  const produitPHP = <?= $produit ? json_encode([
+        'id' => $produit['id'],
+        'nom' => $produit['nom'],
+        'prix' => $produit['prix'],
+        'image' => $produit['image'],
+        'stock' => $produit['stock']
+    ]) : 'null' ?>;
 
-  let produitActuel = null;
+  const taillesPHP = <?= json_encode($tailles) ?>;
+  const couleursPHP = <?= json_encode($couleurs) ?>;
+
   let tailleSelectionnee = null;
   let couleurSelectionnee = null;
 
-  // Récupérer l'ID du produit depuis l'URL
-  const params = new URLSearchParams(window.location.search);
-  const idProduit = params.get('id');
-
-  // Charger le produit
-  function chargerProduit(id) {
-    produitActuel = produits[id];
-    if (!produitActuel) {
-      document.getElementById('nomProduit').textContent = "Produit non trouvé";
-      return;
-    }
-
-    document.getElementById('nomProduit').textContent = produitActuel.nom;
-    document.getElementById('prixProduit').textContent = produitActuel.prix.toFixed(2) + " DH";
-    document.getElementById('descProduit').textContent = produitActuel.description;
-    
-    // Image
-    const img = document.getElementById('imgProduit');
-    const placeholder = document.getElementById('placeholderPhoto');
-    img.src = produitActuel.image;
-    img.style.display = 'block';
-    placeholder.style.display = 'none';
-
-    // Tailles
-    const taillesContainer = document.getElementById('taillesContainer');
-    taillesContainer.innerHTML = '';
-    produitActuel.tailles.forEach(taille => {
-      const btn = document.createElement('button');
-      btn.className = 'taille-btn';
-      btn.textContent = taille;
-      btn.onclick = () => selectionnerTaille(taille, btn);
-      taillesContainer.appendChild(btn);
-    });
-
-    // Couleurs
-    const sectionCouleurs = document.getElementById('sectionCouleurs');
-    const couleursContainer = document.getElementById('couleursContainer');
-    if (produitActuel.couleurs.length > 0) {
-      sectionCouleurs.style.display = 'block';
-      couleursContainer.innerHTML = '';
-      produitActuel.couleurs.forEach(couleur => {
-        const btn = document.createElement('div');
-        btn.className = 'couleur-btn';
-        btn.style.backgroundColor = couleur.code;
-        btn.title = couleur.nom;
-        btn.innerHTML = `<span class="tooltip">${couleur.nom}</span>`;
-        btn.onclick = () => selectionnerCouleur(couleur.nom, btn);
-        // Couleur claire = bordure sombre
-        if (['Beige', 'Yellow', 'White', 'Pink', 'Sky Blue'].includes(couleur.nom)) {
-          btn.style.border = '1px solid #444';
-        }
-        couleursContainer.appendChild(btn);
-      });
-    } else {
-      sectionCouleurs.style.display = 'none';
-      couleurSelectionnee = null;
-    }
-
-    // Reset sélections
-    tailleSelectionnee = null;
-    couleurSelectionnee = null;
-    document.getElementById('quantite').value = 1;
-    document.getElementById('erreurTaille').style.display = 'none';
-    document.getElementById('erreurCouleur').style.display = 'none';
-  }
-
-  function selectionnerTaille(taille, btn) {
+  // ============================================================
+  // SÉLECTIONS
+  // ============================================================
+  function selectionnerTaille(btn, taille) {
     document.querySelectorAll('.taille-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     tailleSelectionnee = taille;
     document.getElementById('erreurTaille').style.display = 'none';
   }
 
-  function selectionnerCouleur(couleur, btn) {
+  function selectionnerCouleur(btn, couleur) {
     document.querySelectorAll('.couleur-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     couleurSelectionnee = couleur;
     document.getElementById('erreurCouleur').style.display = 'none';
   }
 
+  // ============================================================
+  // AJOUT AU PANIER
+  // ============================================================
   function ajouterAuPanier() {
+    if (!produitPHP) return;
+    
     let valide = true;
 
-    // Vérifier taille
-    if (!tailleSelectionnee) {
+    if (taillesPHP.length > 0 && !tailleSelectionnee) {
       document.getElementById('erreurTaille').style.display = 'block';
       valide = false;
     }
 
-    // Vérifier couleur si nécessaire
-    if (produitActuel.couleurs.length > 0 && !couleurSelectionnee) {
+    if (couleursPHP.length > 0 && !couleurSelectionnee) {
       document.getElementById('erreurCouleur').style.display = 'block';
       valide = false;
     }
 
     if (!valide) return;
 
-    const quantite = parseInt(document.getElementById('quantite').value);
+    const quantite = parseInt(document.getElementById('quantite').value) || 1;
+    
+    // Vérifier le stock
+    if (produitPHP.stock !== null && quantite > produitPHP.stock) {
+      alert('Désolé, nous n\'avons que ' + produitPHP.stock + ' exemplaire(s) en stock.');
+      return;
+    }
     
     const article = {
-      id: parseInt(idProduit),
-      nom: produitActuel.nom,
-      prix: produitActuel.prix,
-      image: produitActuel.image,
-      taille: tailleSelectionnee,
+      id: produitPHP.id,
+      nom: produitPHP.nom,
+      prix: produitPHP.prix,
+      image: produitPHP.image,
+      taille: tailleSelectionnee || 'N/A',
       couleur: couleurSelectionnee || 'N/A',
       quantite: quantite
     };
 
-    // Sauvegarder dans localStorage
     let panier = JSON.parse(localStorage.getItem('panierBetty') || '[]');
     
-    // Vérifier si article existe déjà (même id, taille, couleur)
     const index = panier.findIndex(item => 
       item.id === article.id && 
       item.taille === article.taille && 
@@ -333,39 +314,34 @@
     localStorage.setItem('panierBetty', JSON.stringify(panier));
     majBadgePanier();
     
-    // Feedback visuel
+    // Feedback
     const btn = document.getElementById('btnAjouter');
+    const originalText = btn.textContent;
     btn.textContent = '✓ Ajouté !';
     btn.style.background = '#4CAF50';
     setTimeout(() => {
-      btn.textContent = 'Ajouter au panier';
+      btn.textContent = originalText;
       btn.style.background = 'var(--or)';
     }, 1500);
-
-    // Redirection optionnelle vers le panier
-    // window.location.href = 'panier.html';
   }
 
+  // ============================================================
+  // BADGE PANIER
+  // ============================================================
   function majBadgePanier() {
     const panier = JSON.parse(localStorage.getItem('panierBetty') || '[]');
     const total = panier.reduce((sum, item) => sum + item.quantite, 0);
     document.getElementById('badgePanier').textContent = total;
   }
 
-  // Initialisation
-  if (idProduit) {
-    chargerProduit(idProduit);
-  } else {
-    document.getElementById('nomProduit').textContent = "Aucun produit spécifié";
-  }
-
-  majBadgePanier();
-
-  // Menu burger
+  // ============================================================
+  // MENU BURGER
+  // ============================================================
   const burgerBtn = document.getElementById('burgerBtn');
   const navLinks = document.getElementById('navLinks');
   const menuOverlay = document.getElementById('menuOverlay');
-  function toggleMenu(forceClose){
+  
+  function toggleMenu(forceClose) {
     const ouvert = forceClose ? false : !navLinks.classList.contains('ouvert');
     navLinks.classList.toggle('ouvert', ouvert);
     menuOverlay.classList.toggle('visible', ouvert);
@@ -373,9 +349,20 @@
     burgerBtn.setAttribute('aria-expanded', ouvert);
     document.body.classList.toggle('menu-ouvert', ouvert);
   }
+  
   burgerBtn.addEventListener('click', () => toggleMenu());
   menuOverlay.addEventListener('click', () => toggleMenu(true));
   navLinks.querySelectorAll('a').forEach(a => a.addEventListener('click', () => toggleMenu(true)));
+
+  // ============================================================
+  // INITIALISATION
+  // ============================================================
+  majBadgePanier();
+  
+  // Définir la limite max de quantité selon le stock
+  <?php if ($produit && $produit['stock'] > 0): ?>
+    document.getElementById('quantite').max = <?= min($produit['stock'], 10) ?>;
+  <?php endif; ?>
 </script>
 </body>
 </html>
